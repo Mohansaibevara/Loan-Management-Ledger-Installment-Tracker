@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Management Dashboard</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Include SheetJS (xlsx) Library for Excel Export & Import -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Include jsPDF and AutoTable for PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+  <!-- LOGIN SECTION -->
+  <div id="loginContainer">
+    <div class="login-card">
+      <div class="login-header">
+        <h2 data-i18n="loginTitle">Loan Ledger Login</h2>
+        <p data-i18n="loginSubtitle">Enter credentials to access the ledger</p>
+      </div>
+
+      <div id="loginError" class="error-msg">Invalid Username or Password</div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label data-i18n="usernameLabel">Username / Email</label>
+          <input type="text" id="usernameInput" placeholder="admin@dashboard.com" required autocomplete="username">
+        </div>
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label data-i18n="passwordLabel">Password</label>
+          <input type="password" id="passwordInput" placeholder="Password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;" data-i18n="loginBtn">Login to Portal</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD SECTION -->
+  <div id="appContainer">
+    <header>
+      <div>
+        <h1 data-i18n="appTitle">Loan Management Ledger</h1>
+        <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;" data-i18n="appSubtitle">Daily & Weekly Installment Repayment Tracker</p>
+      </div>
+      <div class="header-actions">
+        <select id="langSelect" class="lang-select">
+          <option value="en">English</option>
+          <option value="te">తెలుగు (Telugu)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+        </select>
+        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+        <button class="btn-import-action" id="importExcelBtn" data-i18n="importExcel">📥 Import Excel</button>
+        <button class="btn-success-action" id="exportAllExcelBtn" data-i18n="exportExcel">📊 Export Excel</button>
+        <button class="btn-primary" id="exportAllPdfBtn" data-i18n="exportPdf">📄 Export PDF</button>
+        <button class="btn-primary" id="openModalBtn" data-i18n="addBorrower">+ Add New Borrower</button>
+        <button class="btn-logout" id="logoutBtn" data-i18n="logout">Logout</button>
+      </div>
+    </header>
+
+    <div class="metrics-grid">
+      <div class="card">
+        <div class="card-title" data-i18n="metricPrincipal">Total Active Principal</div>
+        <div class="card-value" id="totalPrincipal">₹0</div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-i18n="metricCollection">Total Expected Collection</div>
+        <div class="card-value" id="totalDailyPay">₹0</div>
+      </div>
+      <div class="card">
+        <div class="card-title" data-i18n="metricInterest">Monthly Interest Accrued</div>
+        <div class="card-value" id="totalMonthlyInterest">₹0</div>
+      </div>
+    </div>
+
+    <!-- Borrower Search Filter Bar -->
+    <div class="search-filter-bar">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="Search by borrower name or phone number across multiple loans...">
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2 data-i18n="tableHeader">Transactions & Active Loans</h2>
+      </div>
+
+      <div class="table-scroll-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="thDate">Date & Time Taken</th>
+              <th data-i18n="thName">Name</th>
+              <th data-i18n="thPhone">Phone</th>
+              <th data-i18n="thPrincipal">Principal</th>
+              <th data-i18n="thInterest">Interest</th>
+              <th data-i18n="thSchedule">Schedule / Pay</th>
+              <th data-i18n="thMonthly">Monthly</th>
+              <th data-i18n="thProgress">Progress</th>
+              <th data-i18n="thStatus">Status</th>
+              <th data-i18n="thActions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="borrowerTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Borrower Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 data-i18n="modalAddTitle">Add New Loan Transaction</h2>
+      <form id="borrowerForm">
+        <div class="form-group">
+          <label data-i18n="labelBorrowerName">Borrower Name</label>
+          <input type="text" id="nameInput" required placeholder="e.g. Ramesh Kumar">
+        </div>
+        <div class="form-group">
+          <label data-i18n="labelPhone">Phone Number</label>
+          <input type="text" id="phoneInput" required placeholder="e.g. +91 9876543210">
+        </div>
+        <div class="form-group">
+          <label data-i18n="labelPrincipal">Principal Amount (₹)</label>
+          <input type="number" id="principalInput" required placeholder="e.g. 50000">
+        </div>
+        <div class="form-group">
+          <label data-i18n="labelRate">Interest Rate (% per month)</label>
+          <input type="number" step="0.1" id="rateInput" required placeholder="e.g. 2">
+        </div>
+        <div class="form-group">
+          <label data-i18n="labelSchedule">Repayment Frequency</label>
+          <select id="scheduleInput" required>
+            <option value="daily" data-i18n="optDaily">Daily (100 Days @ 1%/day)</option>
+            <option value="weekly" data-i18n="optWeekly">Weekly Once (15 Weeks @ 7%/week)</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="closeModalBtn" data-i18n="btnCancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="btnSaveLoan">Save Loan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Date Modal -->
+  <div class="modal-overlay" id="editModalOverlay">
+    <div class="modal">
+      <h2 data-i18n="modalEditDateTitle">Edit Date & Time Taken</h2>
+      <form id="editDateForm">
+        <div class="form-group">
+          <label data-i18n="labelSelectDateTime">Select Correct Date & Time</label>
+          <input type="datetime-local" id="editDateTimeInput" required>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="closeEditModalBtn" data-i18n="btnCancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="btnUpdateDate">Update Date</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Repayment Ledger Modal -->
+  <div class="modal-overlay" id="ledgerModalOverlay">
+    <div class="modal modal-large">
+      <h2 id="ledgerBorrowerTitle">Borrower Ledger</h2>
+      
+      <div class="ledger-stats">
+        <div class="ledger-stat-item">
+          <span data-i18n="statInstallmentAmt">Installment Amount:</span>
+          <span id="statDailyAmount" style="color: var(--primary-dark);">₹0</span>
+        </div>
+        <div class="ledger-stat-item">
+          <span data-i18n="statCollectedSoFar">Collected So Far:</span>
+          <span id="statCollected" style="color: var(--success-text);">₹0</span>
+        </div>
+        <div class="ledger-stat-item">
+          <span data-i18n="statMissedDue">Missed / Due Amount:</span>
+          <span id="statDue" style="color: var(--danger-text);">₹0</span>
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;" data-i18n="ledgerHint">
+        Check off installment payments. Unchecked elapsed intervals highlight as <strong>DUE</strong>.
+      </p>
+
+      <div class="ledger-grid-scroll">
+        <div class="ledger-grid" id="ledgerGrid"></div>
+      </div>
+
+      <div class="modal-actions" style="justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="action-btn" id="exportSingleExcelBtn" style="background: var(--primary-mid); color: white; border: none;" data-i18n="exportExcel">📊 Download Excel</button>
+          <button type="button" class="action-btn" id="exportSinglePdfBtn" style="background: var(--primary-dark); color: white; border: none;" data-i18n="exportPdf">📄 Download PDF</button>
+        </div>
+        <button type="button" class="btn-secondary" id="closeLedgerModalBtn" data-i18n="closeLedger">Close Ledger</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Loan Borrower Profile History Modal -->
+  <div class="modal-overlay" id="borrowerProfileModalOverlay">
+    <div class="modal modal-large">
+      <h2 id="profileModalTitle">Borrower Loan History Profile</h2>
+      
+      <div class="borrower-summary-card">
+        <div class="borrower-summary-item">
+          <span data-i18n="profileTotalLoansLabel">Total Loans Taken</span>
+          <strong id="profileTotalLoans">0</strong>
+        </div>
+        <div class="borrower-summary-item">
+          <span data-i18n="profileActiveLoansLabel">Active / Running Loans</span>
+          <strong id="profileActiveLoans" style="color: var(--primary-dark);">0</strong>
+        </div>
+        <div class="borrower-summary-item">
+          <span data-i18n="profileTotalPrincipalLabel">Total Principal Borrowed</span>
+          <strong id="profileTotalPrincipal">₹0</strong>
+        </div>
+      </div>
+
+      <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-main);" data-i18n="profileBreakdown">Associated Loans Breakdown:</div>
+      <div class="borrower-loans-list" id="profileLoansList"></div>
+
+      <div class="modal-actions" style="justify-content: space-between;">
+        <button type="button" class="action-btn" id="exportProfilePdfBtn" style="background: var(--primary-dark); color: white; border: none;" data-i18n="exportProfilePdf">📄 Download Profile PDF</button>
+        <button type="button" class="btn-secondary" id="closeProfileModalBtn" data-i18n="closeProfile">Close Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModalOverlay">
+    <div class="modal confirm-modal">
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMessage">Are you sure you want to proceed?</p>
+      <div class="modal-actions" style="justify-content: center;">
+        <button type="button" class="btn-secondary" id="confirmCancelBtn" data-i18n="btnCancel">Cancel</button>
+        <button type="button" class="btn-primary" id="confirmOkBtn" data-i18n="btnConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Module File -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
