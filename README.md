@@ -15,7 +15,7 @@ This project was built leveraging Generative AI tools (ChatGPT / Gemini) to acce
 
 ## 🔗 Quick Links
 - **Live Site:** [https://loan-ledger-management.netlify.app/](https://loan-ledger-management.netlify.app/)
-- **Repository:** [https://github.com/YOUR-USERNAME/YOUR-REPO-NAME](https://github.com/YOUR-USERNAME/YOUR-REPO-NAME)
+- **Repository:** [https://github.com/Mohansaibevara/Loan-Management-Ledger-Installment-Tracker.git](https://github.com/Mohansaibevara/Loan-Management-Ledger-Installment-Tracker.git)
 
 ---
 
