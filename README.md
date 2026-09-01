@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/1c963845-1041-4f87-98be-e91dcecf2e89
+
 # 🏦 Loan Management Ledger & Installment Tracker
 
 [![Live Demo](https://img.shields.io/badge/Netlify-Live%20Demo-00C7B7?style=for-the-badge&logo=netlify)](https://YOUR-SITE.netlify.app)
